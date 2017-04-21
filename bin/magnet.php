@@ -5,7 +5,8 @@ class Magnet{
 	protected $create_time = 0;
 	protected $file_size = 0;
 	protected $file_count = 0;
-	protected $tags = "";
+	protected $tags = array();
+	protected $file_list = array();
 
 	public function __construct()
 	{
@@ -13,9 +14,7 @@ class Magnet{
 	}
 	public function build()
 	{
-		if (empty($this->hash_value) OR empty($this->title) 
-				OR empty($this->create_time) OR empty($this->file_size) 
-				OR empty($this->file_count) OR empty($this->tags))
+		if (empty($this->hash_value) OR empty($this->title))
 		{ return false; }
 		$data = array(
 				'hash_value' => $this->hash_value,
@@ -24,6 +23,7 @@ class Magnet{
 				'file_size' => $this->file_size,
 				'file_count' => $this->file_count,
 				'tags' => $this->tags,
+				'file_list' => $this->file_list,
 				);
 		return $data;
 	}
