@@ -30,7 +30,7 @@ $serv->on('request', function ($data, $resp) use($logger) {
 
 			$logger("DEBUG", "收来自{$serv->host}:{$serv->port}链接请求，数据为：".$data);
 
-			$resp->end(json_encode($data)); 
+			$resp->end("id:{$data}is pushed task"); 
 
 			$serv->task($data);
 			});
