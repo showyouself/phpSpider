@@ -33,7 +33,7 @@ class Zhongziso extends Magnet{
 			$hj = new QueryList($this->url_search, $reg, $regRange, 'curl', 'UTF-8');
 			if ($hj->html) {
 				$this->logger->log("DEBUG", "获取id:{$id}");
-				$data = $this->build_zhongziso($hj->jsonArr);
+				$data = $this->build_zhongziso($hj->jsonArr, $id);
 				$this->logger->log("DEBUG", "id:{$id}数据生成成功!");
 				break;
 			}
@@ -47,7 +47,7 @@ class Zhongziso extends Magnet{
 		return $data;
 	}
 
-	public function build_zhongziso($jsonArr)
+	public function build_zhongziso($jsonArr, $source_id)
 	{
 		if (count($jsonArr) < 3 OR empty($jsonArr[0]['link'])) { 
 			$this->logger->log("ERROR", "link为空");
@@ -69,6 +69,8 @@ class Zhongziso extends Magnet{
 		$this->file_list = $this->resetFileList(explode( "\n", $jsonArr[1]['file_list'] ));
 		//LAST_MODIFY
 		$data = $this->build();
+		$data['source_id'] = $source_id;
+		$data['source_type'] = SOURCE_TYPE_ZHONGZISO; 
 		return $data;
 	}
 

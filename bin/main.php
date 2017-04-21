@@ -5,10 +5,10 @@ $serv = new swoole_http_server("127.0.0.1", 9501);
 
 $serv->set(
 		array(
-			'task_worker_num' => 100,
+			'task_worker_num' => 50,
 			'log_file' => getenv("PWD")."/../log/spider.log",
 			'log_level' => 0,
-			//'daemonize' => 1,
+			'daemonize' => 1,
 			)
 		);
 
@@ -44,6 +44,15 @@ $serv->on('close', function ($serv, $fd) use($logger) {
 $serv->on('task', function($serv, $task_id, $from_id, $data) use($logger){
 					$zzd = new Zhongziso(); 
 					$ret = $zzd->scrawl($data);
+					if (!empty($ret)) {
+						global $config;
+						$curl = new Curl();
+						$bak = $curl->rapid($config['sync_url'], 'POST', json_encode($ret));
+						$bak = json_decode($bak, true);
+						if ($bak['err'] != 0) {
+							$logger("ERROR", "同步失败,原因：".$bak['msg']."\n数据：".print_r($ret, true));
+						}
+					}
 					$serv->finish($ret);
 
 		});
