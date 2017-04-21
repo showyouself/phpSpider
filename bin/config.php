@@ -6,4 +6,5 @@ $config = array(
 
 require_once("log.php");
 require_once("phpQuery/QueryList.php");
+require_once("mgr.php");
 ?>
