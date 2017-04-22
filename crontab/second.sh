@@ -1,5 +1,5 @@
 #!/bin/bash
-D=`date  +%y%m%d%k%M`
+D=`date  +%y%m%d-%k%M`
 `echo "$D, start runing" >> /home/ben/work/swoole/spider/log/second.log` 
 
 while :
