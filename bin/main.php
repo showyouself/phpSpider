@@ -5,7 +5,7 @@ $serv = new swoole_http_server("127.0.0.1", 9501);
 
 $serv->set(
 		array(
-			'task_worker_num' => 50,
+			'task_worker_num' => 10,
 			'log_file' => getenv("PWD")."/../log/spider.log",
 			'log_level' => 0,
 			'daemonize' => 1,
@@ -30,7 +30,11 @@ $serv->on('request', function ($data, $resp) use($logger) {
 
 			$logger("DEBUG", "收来自{$serv->host}:{$serv->port}链接请求，数据为：".$data);
 
-			$resp->end("id:{$data}is pushed task"); 
+			$ret = "";
+			$status = $serv->stats();
+			if (isset($status['tasking_num'])) { $ret .= ";tasking_num:<".$status['tasking_num'].">"; }
+			$ret .= "source_id:{$data}is pushed task;";
+			$resp->end($ret); 
 
 			$serv->task($data);
 			});
@@ -58,8 +62,8 @@ $serv->on('task', function($serv, $task_id, $from_id, $data) use($logger){
 		});
 
 $serv->on('finish', function($serv, $task_id, $data) use($logger){
-		 	echo json_encode($data);
-			echo "this" . $task_id . "is end" . PHP_EOL;	
+			if (!empty($data['source_id'])) { echo "source_id:".$data['source_id']; }
+			echo ";task_id:" . $task_id . "is end" . PHP_EOL;	
 		});
 
 //启动服务器
