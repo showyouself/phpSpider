@@ -14,12 +14,14 @@ do
 		done
 
 		step=`expr "${step}" + "1"`
-		`echo ${step} >> /home/ben/work/swoole/spider/crontab/step.lock`
 		result=`curl -s "127.0.0.1:9501?id=${step}"`
 		if [ "$result" == "" ]
 		then
 			echo -e "php main.php is down";
+			sleep 10
 			continue;
+		else
+			`echo ${step} >> /home/ben/work/swoole/spider/crontab/step.lock`
 		fi
 
 		result=${result#*\<}
