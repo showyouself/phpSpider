@@ -5,7 +5,7 @@ $serv = new swoole_http_server("127.0.0.1", 9501);
 
 $serv->set(
 		array(
-			'task_worker_num' => 10,
+			'task_worker_num' => 50,
 			'log_file' => getenv("PWD")."/../log/spider.log",
 			'log_level' => 0,
 			'daemonize' => 1,
@@ -37,6 +37,7 @@ $serv->on('request', function ($data, $resp) use($logger) {
 			$resp->end($ret); 
 
 			$serv->task($data);
+			unset($serv);
 			});
 
 /*//监听连接关闭事件
@@ -56,6 +57,7 @@ $serv->on('task', function($serv, $task_id, $from_id, $data) use($logger){
 						if ($bak['err'] != 0) {
 							$logger("ERROR", "同步失败,原因：".$bak['msg']."\n数据：".print_r($ret, true));
 						}
+						unset($config);
 					}
 					$serv->finish($ret);
 
