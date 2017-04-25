@@ -5,7 +5,7 @@ $serv = new swoole_http_server("127.0.0.1", 9501);
 
 $serv->set(
 		array(
-			'task_worker_num' => 50,
+			'task_worker_num' => 20,
 			'log_file' => getenv("PWD")."/../log/spider.log",
 			'log_level' => 0,
 			'daemonize' => 1,
@@ -23,20 +23,26 @@ $serv->on('request', function ($data, $resp) use($logger) {
 			$data = $data->get;
 
 			if (empty($data)) { $resp->end("request must get"); return ; }
-			$data = $data['id'];
+			$id = $data['id'];
 
-			if (!is_numeric($data)) { $resp->end("must int".$data); return ;}
-			$data = trim($data);
+			if (!is_numeric($id)) { $resp->end("must int".$id); return ;}
+			$id = trim($id);
 
-			$logger("DEBUG", "收来自{$serv->host}:{$serv->port}链接请求，数据为：".$data);
+			$task_data['id'] = $id;
+			$task_data['type'] = SOURCE_TYPE_zzba;
+			if (isset($data['type'])) {
+				$task_data['type'] = $data['type'];
+			}
+
+			$logger("DEBUG", "收来自{$serv->host}:{$serv->port}链接请求，数据为type:{$task_data['type']},id:{$id}");
 
 			$ret = "";
 			$status = $serv->stats();
 			if (isset($status['tasking_num'])) { $ret .= ";tasking_num:<".$status['tasking_num'].">"; }
-			$ret .= "source_id:{$data}is pushed task;";
+			$ret .= "source_id:{$id}is pushed task;";
 			$resp->end($ret); 
 
-			$serv->task($data);
+			$serv->task($task_data);
 			unset($serv);
 			});
 
@@ -47,20 +53,19 @@ $serv->on('close', function ($serv, $fd) use($logger) {
 			});
 */
 $serv->on('task', function($serv, $task_id, $from_id, $data) use($logger){
-					$zzd = new Zhongziso(); 
-					$ret = $zzd->scrawl($data);
-					if (!empty($ret)) {
-						global $config;
-						$curl = new Curl();
-						$bak = $curl->rapid($config['sync_url'], 'POST', json_encode($ret));
-						$bak = json_decode($bak, true);
-						if ($bak['err'] != 0) {
-							$logger("ERROR", "同步失败,原因：".$bak['msg']."\n数据：".print_r($ret, true));
-						}
-						unset($config);
-					}
-					$serv->finish($ret);
-
+		$zzd = new Zhongziso($data['type']); 
+		$ret = $zzd->scrawl($data['id']);
+		if (!empty($ret) AND !empty($ret['hash_value']) AND !empty($ret['title'])) {
+			global $config;
+			$curl = new Curl();
+			$bak = $curl->rapid($config['sync_url'], 'POST', json_encode($ret));
+			$bak = json_decode($bak, true);
+			if ($bak['err'] != 0) {
+				$logger("ERROR", "同步失败,原因：".$bak['msg']."\n数据：".print_r($ret, true));
+			}
+			unset($config);
+		}
+		$serv->finish($ret);
 		});
 
 $serv->on('finish', function($serv, $task_id, $data) use($logger){

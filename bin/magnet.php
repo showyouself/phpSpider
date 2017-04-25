@@ -17,7 +17,7 @@ class Magnet{
 		if (empty($this->hash_value) OR empty($this->title))
 		{ return false; }
 		$data = array(
-				'hash_value' => $this->hash_value,
+				'hash_value' => strtolower($this->hash_value),
 				'title' => $this->title,
 				'create_time' => $this->create_time,
 				'file_size' => $this->file_size,

@@ -2,14 +2,23 @@
 //zhongziso.ne
 require_once("magnet.php");
 class Zhongziso extends Magnet{
-	public $kw = '';
-	public $id_search = 0;
-	public $url_search = "http://zhongziso.net/main-show-id-";
-  	public function __construct()
+	//public $url_search = "http://zhongziso.net/main-show-id-";
+	//public $url_search = "http://www.zzba.org/main-show-id-";
+	public $url_tank = array(
+			SOURCE_TYPE_bt70 => "http://www.70bt.com/main-show-id-",
+			SOURCE_TYPE_bt60 => "http://www.60bt.com/main-show-id-",
+			SOURCE_TYPE_zzba => "http://www.zzba.org/main-show-id-",
+			SOURCE_TYPE_cililian => "http://www.cililian.com/main-show-id-",
+			);
+	public $type = SOURCE_TYPE_zzba;
+
+  	public function __construct($type = SOURCE_TYPE_zzba)
 	{
 		parent::__construct();
 		global $config;
 		$this->logger = new App_Log($config['log_path'], $config['level']);;
+		$this->url_search = $this->url_tank[$type];
+		$this->type = $type;
 	}
 
 	public function scrawl($id)
@@ -17,21 +26,24 @@ class Zhongziso extends Magnet{
 		$this->url_search = $this->url_search.$id;
 		$reg = array();
 		$regRange = array();
-		$this->selectReg('old', $reg, $regRange);
+		$this->selectReg($reg, $regRange);
 
 		$i = 0;
 		$flag = true;
 		$data = array();
 		do{
+
+			$this->logger->log("DEBUG", "获取type:{$this->type},id:{$id}");
 			$hj = new QueryList($this->url_search, $reg, $regRange, 'curl', 'UTF-8');
 			if ($hj->html) {
-				$this->logger->log("DEBUG", "获取id:{$id}");
-				$data = $this->build_zhongziso("old", $hj->jsonArr, $id);
-				$this->logger->log("DEBUG", "id:{$id}数据生成成功!");
+				$data = $this->build_zhongziso($hj->jsonArr, $id);
+				$data['source_id'] = $id;
+				$data['source_type'] = $this->type; 
+				$this->logger->log("DEBUG", "type:{$this->type},id:{$id}数据生成成功!");
 				break;
 			}
 			$i++;
-			$this->logger->log("DEBUG", "尝试第{$i}次获取{$id}");
+			$this->logger->log("DEBUG", "获取失败：".print_r($hj, true)."\n尝试第{$i}次获取type:{$this->type},id:{$id}");
 			if ($i > 3) {
 				$this->logger->log("ERROR","尝获取失,败试{$i}次");
 				break;
@@ -40,9 +52,9 @@ class Zhongziso extends Magnet{
 		return $data;
 	}
 
-	public function selectReg($type = "old", &$reg, &$regRange)
+	public function selectReg(&$reg, &$regRange)
 	{
-		if ($type == "new") {
+		if ($this->type == SOURCE_TYPE_zzba OR $this->type == SOURCE_TYPE_cililian) {
 			$reg = array(
 					'link' => array('#MagnetLink', 'text'),
 					'create_time' => array('.badge:eq(0)', 'text'),
@@ -54,7 +66,7 @@ class Zhongziso extends Magnet{
 					'file_list' => array('td', 'text'),
 					);
 			$regRange = '.container .row .col-md-8';
-		}else if ($type == "old") {
+		}else if ($this->type == "old") {
 			$regRange = '.inerTop';
 			$reg = array(
 				'link' => array('.magnetlink', 'text'),
@@ -65,15 +77,29 @@ class Zhongziso extends Magnet{
 				'tags' => array('.magnetmore dd:eq(6) a', 'text'),
 				'file_list' => array('option', 'text'),
 					);
+		}else if ($this->type == SOURCE_TYPE_bt70)	{
+				$reg = array(
+					'link' => array('', 'html'),
+					'create_time' => array('.badge:eq(0)', 'text',),
+					'file_size' => array('.badge:eq(1)', 'text'),
+					'speed' => array('.badge:eq(2)', 'text'),
+					'file_count' => array('.badge:eq(4)', 'text'),
+					'hash_value' => array('.badge:eq(6)', 'text'),
+					'tags' => array('.otherkey .badge', 'text'),
+					'file_list' => array('td', 'text'),
+					);
+			$regRange = '.container .row .col-md-8';
 		}
 	}
 
-	public function build_zhongziso($type = "old", $jsonArr, $source_id)
+	public function build_zhongziso($jsonArr, $source_id)
 	{
-		if ($type == "new") {
+		if ($this->type == SOURCE_TYPE_zzba OR $this->type == SOURCE_TYPE_cililian) {
 			return $this->build_zhongziso_new($jsonArr, $source_id);
-		}else if ($type == "old") {
+		}else if ($this->type == "old") {
 			return $this->build_zhongziso_old($jsonArr, $source_id);
+		}else if ($this->type == SOURCE_TYPE_bt70) {
+			return $this->build_bt70($jsonArr, $source_id);
 		}
 	}
 	
@@ -83,6 +109,7 @@ class Zhongziso extends Magnet{
 			$this->logger->log("ERROR", "link为空");
 			return array(); 
 		}
+		
 		$tmp = explode('&' , $jsonArr[0]['link']);
 		if (count($tmp) < 2) { 
 			$this->logger->log("ERROR","link解析失败");
@@ -90,6 +117,7 @@ class Zhongziso extends Magnet{
 		}
 		$hash = end(explode(":", $tmp[0]));
 		$title = str_replace("dn=", "", $tmp[1]);
+
 		$this->hash_value = $hash;
 		$this->title = $title;
 		$this->create_time = strtotime( $jsonArr[0]['create_time'] );
@@ -99,13 +127,11 @@ class Zhongziso extends Magnet{
 		$this->file_list = $this->resetFileListOld(explode( "\n", $jsonArr[0]['file_list'] ));
 		//LAST_MODIFY
 		$data = $this->build();
-		$data['source_id'] = $source_id;
-		$data['source_type'] = SOURCE_TYPE_ZHONGZISO; 
 		return $data;
 
 	}
 
-	private function build_zhongziso_new()
+	private function build_zhongziso_new($jsonArr, $source_id)
 	{
 		if (count($jsonArr) < 3 OR empty($jsonArr[0]['link'])) { 
 			$this->logger->log("ERROR", "link为空");
@@ -127,8 +153,33 @@ class Zhongziso extends Magnet{
 		$this->file_list = $this->resetFileList(explode( "\n", $jsonArr[1]['file_list'] ));
 		//LAST_MODIFY
 		$data = $this->build();
-		$data['source_id'] = $source_id;
-		$data['source_type'] = SOURCE_TYPE_ZHONGZISO; 
+		return $data;
+	}
+
+	private function build_bt70($jsonArr, $source_id)
+	{
+		if (count($jsonArr) < 3 OR empty($jsonArr[0]['link'])) { 
+			$this->logger->log("ERROR", "link为空");
+			return array(); 
+		}
+		$tmp = explode('<br>' , $jsonArr[0]['link'])[1];
+		$tmp = explode('&' , $jsonArr[0]['link']);
+		if (count($tmp) < 2) { 
+			$this->logger->log("ERROR","link解析失败");
+			return array(); 
+		}
+		$hash = end(explode(":", $tmp[0]));
+		$title = str_replace("dn=", "", $tmp[1]);
+		$title = str_replace("amp;", '', $title);
+		$this->hash_value = $hash;
+		$this->title = $title;
+		$this->create_time = strtotime( $jsonArr[0]['create_time'] );
+		$this->file_size = $this->resetFileSize( $jsonArr[0]['file_size'] );
+		$this->file_count = $jsonArr[0]['file_count'];
+		$this->tags = explode( "\n", $jsonArr[0]['tags'] );
+		$this->file_list = $this->resetFileList(explode( "\n", $jsonArr[1]['file_list'] ));
+		//LAST_MODIFY
+		$data = $this->build();
 		return $data;
 	}
 

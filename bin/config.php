@@ -6,6 +6,10 @@ $config = array(
 		);
 
 define('SOURCE_TYPE_ZHONGZISO', 1);
+define('SOURCE_TYPE_bt60', 2);
+define('SOURCE_TYPE_bt70', 3);
+define('SOURCE_TYPE_zzba', 4);
+define('SOURCE_TYPE_cililian', 5);
 
 require_once("log.php");
 require_once("phpQuery/QueryList.php");

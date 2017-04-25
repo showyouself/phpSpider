@@ -27,7 +27,7 @@
 		  * @param string $getHtmlWay     【源码获取方式】指是通过curl抓取源码，还是通过file_get_contents抓取源码
 		  * @param string $output_encoding【输出编码格式】指要以什么编码输出(UTF-8,GB2312,.....)，防止出现乱码,如果设置为 假值 则不改变原字符串编码
 		  */
-		public function QueryList($page,$regArr,$regRange='',$getHtmlWay="curl",$output_encoding=false)
+		public function QueryList($page,$regArr,$regRange='',$getHtmlWay="curl",$output_encoding=false, $proxy = NULL)
 		 {
 		 	
 			$this->output_encoding = $output_encoding;
@@ -42,6 +42,10 @@
 					curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
 					curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 					curl_setopt($ch,CURLOPT_RETURNTRANSFER,1); 
+					if (!empty($proxy)) {
+						curl_setopt($ch,CURLOPT_PROXY,$proxy[0]);
+						curl_setopt($ch,CURLOPT_PROXYPORT,$proxy[1]);
+					}
 					$this->html = curl_exec($ch);
 	               curl_close($ch);
 		        }else{
