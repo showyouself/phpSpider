@@ -32,6 +32,7 @@ class Curl
 
 		$this->setUrl($url);
 		$this->setMethod($method);
+		$this->setTimeOut(5);
 		if (strtolower($data) != 'null') {
 			$this->setData($data);
 		}
@@ -143,6 +144,11 @@ class Curl
 	function HttpHeader($header)
 	{
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, $header);
+	}
+
+	function setTimeOut($time)
+	{
+		curl_setopt($this->ch, CURLOPT_TIMEOUT,$time);
 	}
 
 	/**

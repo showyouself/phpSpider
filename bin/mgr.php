@@ -11,45 +11,46 @@ class Zhongziso extends Magnet{
 			SOURCE_TYPE_cililian => "http://www.cililian.com/main-show-id-",
 			);
 	public $type = SOURCE_TYPE_zzba;
+	public $id = '';
 
-  	public function __construct($type = SOURCE_TYPE_zzba)
+  	public function __construct($type = SOURCE_TYPE_zzba, $id)
 	{
 		parent::__construct();
 		global $config;
-		$this->logger = new App_Log($config['log_path'], $config['level']);;
 		$this->url_search = $this->url_tank[$type];
 		$this->type = $type;
+		$this->id = $id;
 	}
 
-	public function scrawl($id)
+	public function scrawl(&$data = array())
 	{
-		$this->url_search = $this->url_search.$id;
+		$this->url_search = $this->url_search.$this->id;
 		$reg = array();
 		$regRange = array();
 		$this->selectReg($reg, $regRange);
 
 		$i = 0;
-		$flag = true;
-		$data = array();
 		do{
 
-			$this->logger->log("DEBUG", "获取type:{$this->type},id:{$id}");
+			logger("DEBUG", "start scrawl url:".$this->url_search, $this->id, $this->type);
 			$hj = new QueryList($this->url_search, $reg, $regRange, 'curl', 'UTF-8');
 			if ($hj->html) {
-				$data = $this->build_zhongziso($hj->jsonArr, $id);
-				$data['source_id'] = $id;
+				$data = $this->build_zhongziso($hj->jsonArr, $this->id);
+				$data['source_id'] = $this->id;
 				$data['source_type'] = $this->type; 
-				$this->logger->log("DEBUG", "type:{$this->type},id:{$id}数据生成成功!");
+				logger("DEBUG", "build data success!",$this->id, $this->type);
 				break;
 			}
 			$i++;
-			$this->logger->log("DEBUG", "获取失败：".print_r($hj, true)."\n尝试第{$i}次获取type:{$this->type},id:{$id}");
+			logger("DEBUG", "scrawl failed：".print_r($hj, true)."\ntry again times :{$i}", $this->id, $this->type);
 			if ($i > 3) {
-				$this->logger->log("ERROR","尝获取失,败试{$i}次");
+				logger("ERROR", "scrawl all failed times :{$i}", $this->id, $this->type);
 				break;
 			} 
 		}while(1);
-		return $data;
+
+		if (empty($data) OR empty($data['hash_value']) OR empty($data['title'])) { return false; }
+		return true;
 	}
 
 	public function selectReg(&$reg, &$regRange)
@@ -106,13 +107,13 @@ class Zhongziso extends Magnet{
 	private function build_zhongziso_old($jsonArr, $source_id)
 	{
 		if (count($jsonArr) < 1 OR empty($jsonArr[0]['link'])) { 
-			$this->logger->log("ERROR", "link为空");
+			logger("ERROR", "empty link", $this->id, $this->type);
 			return array(); 
 		}
 		
 		$tmp = explode('&' , $jsonArr[0]['link']);
 		if (count($tmp) < 2) { 
-			$this->logger->log("ERROR","link解析失败");
+			logger("ERROR", "decode link failed", $this->id, $this->type);
 			return array(); 
 		}
 		$hash = end(explode(":", $tmp[0]));
@@ -134,12 +135,12 @@ class Zhongziso extends Magnet{
 	private function build_zhongziso_new($jsonArr, $source_id)
 	{
 		if (count($jsonArr) < 3 OR empty($jsonArr[0]['link'])) { 
-			$this->logger->log("ERROR", "link为空");
+			logger("ERROR", "empty link ", $this->id, $this->type);
 			return array(); 
 		}
 		$tmp = explode('&' , $jsonArr[0]['link']);
 		if (count($tmp) < 2) { 
-			$this->logger->log("ERROR","link解析失败");
+			logger("ERROR", "decode link failed", $this->id, $this->type);
 			return array(); 
 		}
 		$hash = end(explode(":", $tmp[0]));
@@ -159,13 +160,13 @@ class Zhongziso extends Magnet{
 	private function build_bt70($jsonArr, $source_id)
 	{
 		if (count($jsonArr) < 3 OR empty($jsonArr[0]['link'])) { 
-			$this->logger->log("ERROR", "link为空");
+			logger("ERROR", "empty link", $this->id, $this->type);
 			return array(); 
 		}
 		$tmp = explode('<br>' , $jsonArr[0]['link'])[1];
 		$tmp = explode('&' , $jsonArr[0]['link']);
 		if (count($tmp) < 2) { 
-			$this->logger->log("ERROR","link解析失败");
+			logger("ERROR", "decode link failed", $this->id, $this->type);
 			return array(); 
 		}
 		$hash = end(explode(":", $tmp[0]));

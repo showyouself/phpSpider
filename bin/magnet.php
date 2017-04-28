@@ -12,6 +12,7 @@ class Magnet{
 	{
 		
 	}
+
 	public function build()
 	{
 		if (empty($this->hash_value) OR empty($this->title))
@@ -26,6 +27,18 @@ class Magnet{
 				'file_list' => $this->file_list,
 				);
 		return $data;
+	}
+
+	public function sync_post($ret)
+	{
+		if (!empty($ret) AND !empty($ret['hash_value']) AND !empty($ret['title'])) {
+			global $config;
+			$curl = new Curl();
+			$bak = $curl->rapid($config['sync_url'], 'POST', json_encode($ret));
+			$bak = json_decode($bak, true);
+			if ($bak['err'] == 0) {  return true; }
+		}
+		return false;
 	}
 }
 ?>

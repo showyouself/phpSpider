@@ -11,7 +11,9 @@ define('SOURCE_TYPE_bt70', 3);
 define('SOURCE_TYPE_zzba', 4);
 define('SOURCE_TYPE_cililian', 5);
 
-require_once("log.php");
+function logger($level, $msg, $id = 0, $type = 0){ echo "[$level][$id][$type] - ".date("Y-m-d H:i:s",time()).' -->'.$msg.PHP_EOL; }
+
+//require_once("log.php");
 require_once("phpQuery/QueryList.php");
 require_once("mgr.php");
 require_once("curl.php");
