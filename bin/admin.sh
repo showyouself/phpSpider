@@ -4,6 +4,17 @@ cd /home/ben/work/swoole/spider/bin
 second_log=/home/ben/work/swoole/spider/log/second.log
 process="main.php"
 
+usage()
+{
+	echo "usage:<sh_restart|restart|start|stop>"
+}
+
+if [ ! -n "$1" ]
+then 
+	usage;
+	exit;
+fi
+
 #接受信号
 if [ $1 == "stop" ]
 then
@@ -31,6 +42,6 @@ then
 	ps -ef|grep "main.php"
 	ps -ef|grep "second"|grep -v "grep"
 else
-	echo "usage:<sh_restart|restart|start|stop>"
+	usage
 fi
 
